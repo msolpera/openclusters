@@ -3,10 +3,10 @@
 
 FILES=  
 
-1037ocs_data.dat : Catalog of 1037 open clusters with structural and fundamental parameters, based on membership estimation using pyUPMASK.  
+**1037ocs_data.dat** : Catalog of 1037 open clusters with structural and fundamental parameters, based on membership estimation using pyUPMASK.  
 
-VR_final.dat : Galactocentric three-dimensional velocities for open clusters with radial velocity estimation  
+**VR_final.dat** : Galactocentric three-dimensional velocities for open clusters with radial velocity estimation  
 
-orbital_parameters.dat : Orbital parameters for those open clusters with radial velocity estimation.  
+**orbital_parameters.dat** : Orbital parameters for those open clusters with radial velocity estimation.  
 
 
