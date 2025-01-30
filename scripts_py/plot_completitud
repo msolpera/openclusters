@@ -1,0 +1,104 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+from scipy.stats import gaussian_kde
+from astropy.coordinates import SkyCoord
+from astropy import units as u
+from astropy.io import ascii
+
+
+def plotQ(dm, massJ, lon, lat, label):
+
+    dist_pc = 10 ** (0.2 * (np.array(dm) + 5))
+    cgal = SkyCoord(l=lon, b=lat, distance=dist_pc * u.pc, frame="galactic")
+    cartesian = cgal.cartesian
+    # Extract X and Y coordinates
+    X = cartesian.x.value
+    Y = cartesian.y.value
+    R_pc = np.sqrt(X**2 + Y**2)
+
+    log_MJ = np.log10(massJ)
+    #log_MJ = massJ
+    # Remove nans
+    msk = ~np.isnan(R_pc) & ~np.isnan(log_MJ)
+    R_pc, log_MJ = R_pc[msk], log_MJ[msk]
+
+    # Perform kernel density estimation
+    xy = np.vstack([log_MJ, R_pc])
+    kde = gaussian_kde(xy)
+    xmin, ymin = log_MJ.min(), R_pc.min()
+    xmax, ymax = log_MJ.max(), R_pc.max()
+    # Create a grid to evaluate kde
+    X, Y = np.mgrid[xmin:xmax:50j, ymin:ymax:50j]
+    positions = np.vstack([X.ravel(), Y.ravel()])
+    Z = np.reshape(kde(positions).T, X.shape)
+
+    # Normalize
+    Z /= np.max(Z, axis=1, keepdims=True)
+
+    # Plot the density
+    plt.contourf(X, Y, Z, levels=50, cmap='viridis')
+    plt.xlim(1.55, 4)
+    plt.ylim(ymin, 5000)
+    plt.xlabel(r'$log(M)$')
+    plt.ylabel(r'$R\;[pc]$')
+    plt.text(3.5,4100, label, bbox=dict(facecolor='white', edgecolor='k', boxstyle='round,pad=0.2', alpha=0.7, lw=0.5)\
+             , c='k', fontsize=10)
+
+
+#hunt24_T1 = pd.read_csv("./hunt_mass.csv", sep='\t')
+mass = ascii.read("./masses_total.dat")
+datos = ascii.read('../../final_table_2024.dat')
+
+mass=mass[datos['lkl']>1]
+datos = datos[datos['lkl']>1]
+from astropy.table import join
+ast = join(mass, datos, keys='NAME')
+
+dm = []
+
+
+#for _ in hunt24_T1['mod50']:
+for _ in ast['dm_median']:
+    try:
+        dm.append(float(_))
+    except:
+        dm.append(np.nan)
+dm = np.array(dm)
+massJ = []
+#for _ in hunt24_T1['massj']:
+for _ in ast['Mact']:
+    try:
+        massJ.append(float(_))
+    except:
+        massJ.append(np.nan)
+massJ = np.array(massJ)
+
+#radec_c = (hunt24_T1['RA'].values, hunt24_T1['DEC'].values)
+#c = SkyCoord(ra=radec_c[0] * u.degree, dec=radec_c[1] * u.degree)
+lon, lat = ast['GLON']*u.deg, ast['GLAT']*u.deg
+#lon, lat = c.galactic.l, c.galactic.b
+lon_v = lon.value
+#Q_msk = [(lon_v > 0) & (lon_v <= 90), (lon_v > 90) & (lon_v <= 180),\
+#         (lon_v > 180) & (lon_v <= 270), (lon_v > 200) & (lon_v <= 360)]
+Q_msk = [(lon_v > 180) & (lon_v <= 270), (lon_v > 200) & (lon_v <= 360)]
+#text=['I C', 'II C', 'III C', 'IV C']
+text =['III C', 'IV C']
+plt.style.use(['science', 'no-latex'])
+fig, axs = plt.subplots(1,2, layout='constrained', figsize=(6.5,2.5))
+#fig, axs = plt.subplots(2,2, layout='constrained', figsize=(6,4))
+for i in range(2):  
+    plt.subplot(int('12'+str(i+1)))
+    sc=plotQ(dm[Q_msk[i]], massJ[Q_msk[i]], lon[Q_msk[i]], lat[Q_msk[i]], text[i])
+
+# plt.colorbar()
+cbar = fig.colorbar(sc, ax=axs.ravel().tolist(), orientation='vertical', pad=0.01)
+cbar.set_label('KDE')
+plt.tight_layout()
+plt.savefig("completitud_OC_HR24_34c.png", dpi=300)
+
+
+
+#plt.show()
+
+plt.savefig("completitud_OC_HR24_34c.png", dpi=300)
